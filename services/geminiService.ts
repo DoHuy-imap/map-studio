@@ -519,7 +519,9 @@ export const generateStockAiImages = async (request: StockAiRequest): Promise<st
     }
   }
 
-  if (request.colors && request.colors.length > 0) {
+  if (request.isBlackAndWhite) {
+    prompt += `. Color palette: Black and white, monochrome, grayscale.`;
+  } else if (request.colors && request.colors.length > 0) {
     if (request.keepOriginalColors) {
       prompt += `. Color palette: Use the exact colors from the input references.`;
     } else {
