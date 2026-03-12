@@ -12,6 +12,7 @@ const initialRequest: StockAiRequest = {
   keepOriginalColors: false,
   isBlackAndWhite: false,
   shapeImage: null,
+  keepOriginalShape: false,
   subjectDescription: '',
   additionalStyles: [],
   ratio: '1:1',
@@ -304,6 +305,19 @@ const StockAi: React.FC<StockAiProps> = ({ onSaveSuccess }) => {
                   </label>
                 )}
               </div>
+              
+              <label className="flex items-center gap-1.5 cursor-pointer group mt-1">
+                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${request.keepOriginalShape ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300 group-hover:border-emerald-400'}`}>
+                  {request.keepOriginalShape && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                </div>
+                <input 
+                  type="checkbox" 
+                  className="hidden"
+                  checked={request.keepOriginalShape}
+                  onChange={(e) => setRequest(prev => ({ ...prev, keepOriginalShape: e.target.checked }))}
+                />
+                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Giữ nguyên hình dáng</span>
+              </label>
             </div>
           </div>
         </div>
