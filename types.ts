@@ -183,6 +183,7 @@ export interface StockAiRequest {
   styleImage: string | null;
   colors: string[];
   keepOriginalColors?: boolean;
+  isBlackAndWhite?: boolean;
   shapeImage: string | null;
   subjectDescription: string;
   additionalStyles: StockAiStyle[];
