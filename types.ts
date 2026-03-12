@@ -185,6 +185,7 @@ export interface StockAiRequest {
   keepOriginalColors?: boolean;
   isBlackAndWhite?: boolean;
   shapeImage: string | null;
+  keepOriginalShape?: boolean;
   subjectDescription: string;
   additionalStyles: StockAiStyle[];
   ratio: AspectRatio;
