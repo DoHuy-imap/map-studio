@@ -300,10 +300,10 @@ const App: React.FC = () => {
               <Dashboard onSelectFeature={setActiveTab as any} />
            </div>
            <div className={`absolute inset-0 ${activeTab === 'ai-template' ? 'block' : 'hidden'}`}>
-              <AiTemplateDesign />
+              <AiTemplateDesign onSaveSuccess={() => setRefreshGalleryKey(prev => prev + 1)} />
            </div>
            <div className={`absolute inset-0 ${activeTab === 'stock-ai' ? 'block' : 'hidden'}`}>
-              <StockAi />
+              <StockAi onSaveSuccess={() => setRefreshGalleryKey(prev => prev + 1)} />
            </div>
            <div className={`absolute inset-0 ${activeTab === 'studio' ? 'block' : 'hidden'}`}>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
