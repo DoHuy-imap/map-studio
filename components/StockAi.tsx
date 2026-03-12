@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  StockAiRequest, StockAiStyle, StockAiBackground, AspectRatio, ProductionModel 
+  StockAiRequest, StockAiStyle, StockAiBackground, AspectRatio, ProductionModel, QualityLevel 
 } from '../types';
 import { generateStockAiImages, modifyStockAiImage, upscaleImageTo4K, getFinalAspectRatio } from '../services/geminiService';
 import { saveDesignToHistory } from '../services/historyDb';
@@ -10,6 +10,7 @@ const initialRequest: StockAiRequest = {
   styleImage: null,
   colors: ['#000000', '#FFFFFF', '#FFD300'],
   keepOriginalColors: false,
+  isBlackAndWhite: false,
   shapeImage: null,
   subjectDescription: '',
   additionalStyles: [],
@@ -20,9 +21,13 @@ const initialRequest: StockAiRequest = {
   model: ProductionModel.NANO_BANANA_2
 };
 
+interface StockAiProps {
+  onSaveSuccess?: () => void;
+}
+
 const RATIOS = ["1:1", "3:4", "9:16", "1:4", "1:8"];
 
-const StockAi: React.FC = () => {
+const StockAi: React.FC<StockAiProps> = ({ onSaveSuccess }) => {
   const { user, addSessionCost } = useAuth();
   const [request, setRequest] = useState<StockAiRequest>({ ...initialRequest });
   const [isGenerating, setIsGenerating] = useState(false);
@@ -135,12 +140,17 @@ const StockAi: React.FC = () => {
     try {
       await saveDesignToHistory({
         thumbnail: selectedImage,
-        requestData: request as any, // Cast to any as StockAiRequest differs from ArtDirectionRequest
+        requestData: {
+          ...request,
+          mainHeadline: request.subjectDescription || 'Stock AI Image',
+          productType: 'Stock AI',
+          quality: QualityLevel.HIGH
+        } as any,
         designPlan: {
           subject: request.subjectDescription,
           styleContext: request.additionalStyles.join(', '),
           composition: '',
-          colorLighting: request.keepOriginalColors ? 'Original Colors' : request.colors.join(', '),
+          colorLighting: request.isBlackAndWhite ? 'Black and White' : (request.keepOriginalColors ? 'Original Colors' : request.colors.join(', ')),
           decorElements: '',
           typography: ''
         },
@@ -149,6 +159,7 @@ const StockAi: React.FC = () => {
         finalPrompt: request.subjectDescription,
       });
       alert("Đã lưu vào thư viện thành công!");
+      onSaveSuccess?.();
     } catch (err: any) {
       alert(err.message || 'Lỗi khi lưu vào thư viện.');
     } finally {
@@ -224,12 +235,25 @@ const StockAi: React.FC = () => {
                     type="checkbox" 
                     className="hidden"
                     checked={request.keepOriginalColors}
-                    onChange={(e) => setRequest(prev => ({ ...prev, keepOriginalColors: e.target.checked }))}
+                    onChange={(e) => setRequest(prev => ({ ...prev, keepOriginalColors: e.target.checked, isBlackAndWhite: e.target.checked ? false : prev.isBlackAndWhite }))}
                   />
                   <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Giữ màu gốc</span>
                 </label>
 
-                <div className={`flex flex-col gap-1.5 w-full transition-opacity ${request.keepOriginalColors ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                <label className="flex items-center gap-1.5 cursor-pointer group">
+                  <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors ${request.isBlackAndWhite ? 'bg-slate-800 border-slate-800' : 'bg-white border-slate-300 group-hover:border-slate-800'}`}>
+                    {request.isBlackAndWhite && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="hidden"
+                    checked={request.isBlackAndWhite}
+                    onChange={(e) => setRequest(prev => ({ ...prev, isBlackAndWhite: e.target.checked, keepOriginalColors: e.target.checked ? false : prev.keepOriginalColors }))}
+                  />
+                  <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Đen trắng</span>
+                </label>
+
+                <div className={`flex flex-col gap-1.5 w-full transition-opacity ${request.keepOriginalColors || request.isBlackAndWhite ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                   {request.colors.map((color, idx) => (
                     <div key={idx} className="flex items-center gap-1 bg-white rounded-md border border-slate-200 p-0.5">
                       <input 
