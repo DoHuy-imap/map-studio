@@ -551,7 +551,11 @@ export const generateStockAiImages = async (request: StockAiRequest): Promise<st
     const data = extractBase64AndMime(resizedShape);
     if (data) {
       imageParts.push({ inlineData: data });
-      prompt += `. Use this image as shape/composition reference.`;
+      if (request.keepOriginalShape) {
+        prompt += `. Strictly maintain the exact shape, silhouette, and outline of the provided shape reference image. Do not alter the core shape.`;
+      } else {
+        prompt += `. Use this image as shape/composition reference.`;
+      }
     }
   }
 
