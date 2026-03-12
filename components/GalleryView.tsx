@@ -110,18 +110,10 @@ const GalleryView: React.FC<GalleryViewProps> = ({ onSeparateLayout }) => {
       finally { setIsUpscaling(false); }
   };
 
-  const getTitle = (requestData: any) => {
-    return requestData.mainHeadline || requestData.subjectDescription || "Stock AI Design";
-  };
-
-  const getQuality = (requestData: any) => {
-    return requestData.quality || "Standard";
-  };
-
   return (
     <div className="h-full overflow-y-auto pr-2 flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
-        <div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Thư Viện Studio</h2></div>
+        <div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Tệp Gallery Chung</h2></div>
         <div className="flex items-center gap-4">
             <button onClick={() => setFilterMine(!filterMine)} className={`text-[10px] px-5 py-2.5 rounded-xl font-black uppercase tracking-widest border transition-all ${filterMine ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{filterMine ? 'Của tôi' : 'Tất cả'}</button>
             <button onClick={() => { setIsSelectMode(!isSelectMode); setSelectedIds([]); }} className={`text-[10px] px-5 py-2.5 rounded-xl font-black uppercase tracking-widest transition-all ${isSelectMode ? 'bg-purple-50 border-purple-200 text-purple-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>{isSelectMode ? 'Hủy' : 'Chọn'}</button>
@@ -154,7 +146,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ onSeparateLayout }) => {
                      {selectedIds.includes(design.id!) && <div className="w-2 h-2 bg-white rounded-full" />}
                    </div>
                  )}
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-[10px] text-white font-black uppercase tracking-widest line-clamp-1">{getTitle(design.requestData)}</p></div>
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-[10px] text-white font-black uppercase tracking-widest line-clamp-1">{design.requestData.mainHeadline}</p></div>
               </div>
               <div className="p-5 flex justify-between items-center bg-white">
                  <div><span className="text-[8px] text-orange-600 font-black uppercase tracking-widest">{design.author}</span><p className="text-[8px] text-slate-400 font-bold uppercase">{formatDate(design.createdAt)}</p></div>
@@ -180,32 +172,30 @@ const GalleryView: React.FC<GalleryViewProps> = ({ onSeparateLayout }) => {
                </div>
                <div className="w-full md:w-1/2 flex flex-col p-12 bg-white">
                    <div className="flex justify-between items-start mb-10">
-                       <div><h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-tight">{getTitle(selectedDesign.requestData)}</h3><p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">{selectedDesign.author} ● {formatDate(selectedDesign.createdAt)}</p></div>
+                       <div><h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-tight">{selectedDesign.requestData.mainHeadline}</h3><p className="text-[10px] text-slate-400 font-black uppercase mt-2 tracking-widest">{selectedDesign.author} ● {formatDate(selectedDesign.createdAt)}</p></div>
                        <button onClick={() => { setSelectedDesign(null); setEditResult(null); }} className="p-3 bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-600 transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg></button>
                    </div>
                    <div className="flex-grow space-y-8 overflow-y-auto pr-4 scrollbar-hide">
-                       {selectedDesign.designPlan && (
-                         <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-200 space-y-4">
-                             <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Design Plan Analysis</h4>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Subject:</span> {selectedDesign.designPlan.subject}</p>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Style:</span> {selectedDesign.designPlan.styleContext}</p>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Composition:</span> {selectedDesign.designPlan.composition}</p>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Color & Lighting:</span> {selectedDesign.designPlan.colorLighting}</p>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Decor Elements:</span> {selectedDesign.designPlan.decorElements}</p>
-                             <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Typography:</span> {selectedDesign.designPlan.typography}</p>
-                             {selectedDesign.finalPrompt && (
-                                 <div className="mt-4 pt-4 border-t border-slate-200">
-                                     <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-2">Final Prompt</h4>
-                                     <p className="text-[11px] text-slate-600 leading-relaxed italic">{selectedDesign.finalPrompt}</p>
-                                 </div>
-                             )}
-                         </div>
-                       )}
+                       <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-200 space-y-4">
+                           <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Design Plan Analysis</h4>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Subject:</span> {selectedDesign.designPlan.subject}</p>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Style:</span> {selectedDesign.designPlan.styleContext}</p>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Composition:</span> {selectedDesign.designPlan.composition}</p>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Color & Lighting:</span> {selectedDesign.designPlan.colorLighting}</p>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Decor Elements:</span> {selectedDesign.designPlan.decorElements}</p>
+                           <p className="text-[11px] text-slate-600 leading-relaxed font-bold"><span className="text-slate-400 uppercase mr-2">Typography:</span> {selectedDesign.designPlan.typography}</p>
+                           {selectedDesign.finalPrompt && (
+                               <div className="mt-4 pt-4 border-t border-slate-200">
+                                   <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-2">Final Prompt</h4>
+                                   <p className="text-[11px] text-slate-600 leading-relaxed italic">{selectedDesign.finalPrompt}</p>
+                               </div>
+                           )}
+                       </div>
                        <div className="grid grid-cols-2 gap-4">
                             <button onClick={() => setIsEditing(true)} className="py-5 bg-white border border-violet-200 text-violet-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-50 transition-all">🪄 AI Inpaint Pro</button>
                             <button onClick={() => {
                                 if (onSeparateLayout) {
-                                    onSeparateLayout(editResult || selectedDesign.thumbnail, selectedDesign.finalPrompt || '', selectedDesign.recommendedAspectRatio || '1:1', getQuality(selectedDesign.requestData));
+                                    onSeparateLayout(editResult || selectedDesign.thumbnail, selectedDesign.finalPrompt || '', selectedDesign.recommendedAspectRatio || '1:1', selectedDesign.requestData.quality);
                                 }
                             }} className="py-5 bg-white border border-blue-200 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all">Tách Lớp Đồ Họa</button>
                        </div>

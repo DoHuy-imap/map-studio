@@ -51,7 +51,11 @@ const getClosestAspectRatio = (w: number, h: number): string => {
     return closest.name;
 };
 
-const AiTemplateDesign: React.FC = () => {
+interface AiTemplateDesignProps {
+    onSaveSuccess?: () => void;
+}
+
+const AiTemplateDesign: React.FC<AiTemplateDesignProps> = ({ onSaveSuccess }) => {
     const { user, addSessionCost } = useAuth();
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
     const [instruction, setInstruction] = useState('');
@@ -373,6 +377,7 @@ const AiTemplateDesign: React.FC = () => {
                 author: user.displayName
             });
             alert("Đã lưu vào thư viện thành công!");
+            onSaveSuccess?.();
         } catch (error) {
             console.error("Error saving to gallery:", error);
             alert("Lỗi khi lưu vào thư viện.");
