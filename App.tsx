@@ -232,6 +232,25 @@ const App: React.FC = () => {
     }
   };
 
+  const handleResizeExpand = async (compositeImage: string, textDescription: string, targetRatio: string) => {
+    setRefinementResult(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      const { resizeAndExpandImage } = await import('./services/geminiService');
+      const res = await resizeAndExpandImage(compositeImage, textDescription, targetRatio as any);
+      if (res) {
+        const newImg = { url: res, isNew: true };
+        setImageResult(prev => ({
+           ...prev,
+           images: [...prev.images.map(img => ({ ...img, isNew: false })), newImg], 
+        }));
+        setRefinementResult(prev => ({ ...prev, images: [newImg], loading: false, error: null }));
+        addSessionCost(3000); // Chi phí outpaint
+      }
+    } catch (err: any) {
+      setRefinementResult(prev => ({ ...prev, loading: false, error: err.message }));
+    }
+  };
+
   const handleSaveDesign = useCallback(async (imageUrl: string) => {
     if (!user || !artDirection) return;
     setIsSaving(true);
@@ -325,6 +344,7 @@ const App: React.FC = () => {
                       onSeparateLayout={handleSeparateLayout}
                       onRefineImage={() => {}} 
                       onSmartRemove={handleSmartRemove} 
+                      onResizeExpand={handleResizeExpand}
                       onResetRefinement={() => {}} 
                       separatedAssets={separatedAssets} 
                       onSaveDesign={handleSaveDesign} 
