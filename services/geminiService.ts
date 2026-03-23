@@ -435,6 +435,33 @@ export const regeneratePromptFromPlan = async (plan: DesignPlan, req: ArtDirecti
     return result;
 };
 
+export const resizeAndExpandImage = async (
+    compositeImage: string,
+    description: string,
+    targetAspectRatio: AspectRatio
+): Promise<string | null> => {
+    const ai = getGeminiClient();
+    const sourceData = extractBase64AndMime(compositeImage);
+    if (!sourceData) return null;
+    
+    let prompt = `Outpaint and expand the image to fill the transparent areas seamlessly. Maintain the original image content exactly as it is.`;
+    if (description) {
+        prompt += ` Context for expansion: ${description}.`;
+    }
+    prompt += ` The output MUST be in ${targetAspectRatio} aspect ratio.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: { parts: [{ text: prompt }, { inlineData: sourceData }] },
+        config: {
+            imageConfig: { aspectRatio: targetAspectRatio }
+        }
+    });
+    
+    const data = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+    return data ? `data:image/png;base64,${data}` : null;
+};
+
 export const processAiTemplate = async (
     source: string, 
     mask: string | null, 
