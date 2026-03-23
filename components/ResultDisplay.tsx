@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { ArtDirectionRequest, ArtDirectionResponse, ImageGenerationResult, SeparatedAssets, DesignPlan, LayoutSuggestion, ProductionModel } from '../types';
 import LayoutEditor from './LayoutEditor';
 import SmartRemover from './SmartRemover';
-import { convertLayoutToPrompt, upscaleImageTo4K, LAYOUT_TAG, suggestNewLayout } from '../services/geminiService';
+import ResizeExpand from './ResizeExpand';
+import { convertLayoutToPrompt, upscaleImageTo4K, LAYOUT_TAG, suggestNewLayout, resizeAndExpandImage } from '../services/geminiService';
 
 const triggerDownload = (base64Data: string, fileName: string) => {
   try {
@@ -39,6 +40,7 @@ interface ResultDisplayProps {
   onSeparateLayout: (selectedImage: string, mode: 'full' | 'background') => void;
   onRefineImage: (sourceImage: string, instruction: string) => void;
   onSmartRemove: (sourceImage: string, maskBase64: string, textDescription: string) => void;
+  onResizeExpand: (compositeImage: string, textDescription: string, targetRatio: string) => void;
   onResetRefinement: () => void;
   separatedAssets: SeparatedAssets;
   onSaveDesign: (selectedImageUrl: string, finalPromptUsed: string) => void;
@@ -58,6 +60,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onUpdatePlan,
   onSeparateLayout,
   onSmartRemove,
+  onResizeExpand,
   onResetRefinement,
   separatedAssets: externalAssets,
   onSaveDesign,
@@ -70,6 +73,8 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [showSmartRemover, setShowSmartRemover] = useState(false);
+  const [showResizeExpand, setShowResizeExpand] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [isUpscaling, setIsUpscaling] = useState(false);
   const [layoutMask, setLayoutMask] = useState<string | null>(null);
   const [isRefreshingLayout, setIsRefreshingLayout] = useState(false);
@@ -97,6 +102,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   useEffect(() => {
     setSelectedImage(null);
     setShowSmartRemover(false);
+    setShowResizeExpand(false);
     onResetRefinement();
   }, [imageResult.images, onResetRefinement]);
 
@@ -199,6 +205,18 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
             onProcess={(mask, text) => onSmartRemove(selectedImage, mask, text)} 
             resultUrl={null} 
             aspectRatio={artDirection?.recommendedAspectRatio || "1:1"}
+          />
+      )}
+
+      {showResizeExpand && selectedImage && (
+          <ResizeExpand 
+            imageUrl={selectedImage} 
+            onClose={() => setShowResizeExpand(false)} 
+            isProcessing={refinementResult.loading} 
+            onProcess={(compositeImage, text, targetRatio) => {
+              onResizeExpand(compositeImage, text, targetRatio);
+            }} 
+            currentRatio={artDirection?.recommendedAspectRatio || "1:1"}
           />
       )}
 
@@ -415,6 +433,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
                  <button onClick={() => onSaveDesign(selectedImage, editablePrompt)} disabled={isSaving} className="px-10 py-5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-slate-200 shadow-sm transition-all disabled:opacity-50">Lưu Thư Viện</button>
                  <button onClick={handleStartSeparation} disabled={externalAssets.loading} className="px-10 py-5 bg-white border border-blue-200 text-blue-600 text-[10px] font-black rounded-2xl hover:bg-blue-50 transition-all uppercase tracking-widest shadow-sm">{externalAssets.loading ? 'Đang phân tích...' : 'Tách Lớp Đồ Họa'}</button>
                  <button onClick={() => setShowSmartRemover(true)} className="px-10 py-5 bg-white border border-violet-200 text-violet-600 text-[10px] font-black rounded-2xl hover:bg-violet-50 transition-all uppercase tracking-widest shadow-sm">AI Inpaint Pro</button>
+                 <button onClick={() => setShowResizeExpand(true)} className="px-10 py-5 bg-white border border-emerald-200 text-emerald-600 text-[10px] font-black rounded-2xl hover:bg-emerald-50 transition-all uppercase tracking-widest shadow-sm">Tùy chỉnh kích thước</button>
                  <button onClick={() => handleDownload4K(selectedImage)} disabled={isUpscaling} className="px-12 py-5 bg-gradient-to-br from-orange-500 to-orange-600 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl shadow-xl transition-all active:scale-95 disabled:opacity-50 border-t-2 border-white/20">{isUpscaling ? 'Đang Nâng Cấp...' : 'Tải File In (4K)'}</button>
              </div>
            </div>
