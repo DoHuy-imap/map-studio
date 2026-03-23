@@ -82,24 +82,21 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
 
     let drawWidth = img.width;
     let drawHeight = img.height;
-    let drawX = (canvasWidth - drawWidth) / 2;
-    let drawY = (canvasHeight - drawHeight) / 2;
-
+    
     if (activeTab === 'scale') {
       const scaleFactor = scale / 100;
       drawWidth = img.width * scaleFactor;
       drawHeight = img.height * scaleFactor;
-      
-      // Apply position offset
-      drawX = (canvasWidth - drawWidth) / 2 + position.x;
-      drawY = (canvasHeight - drawHeight) / 2 + position.y;
     }
+
+    // Apply position offset
+    let drawX = (canvasWidth - drawWidth) / 2 + position.x;
+    let drawY = (canvasHeight - drawHeight) / 2 + position.y;
 
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   };
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    if (activeTab !== 'scale') return;
     setIsDragging(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
@@ -107,13 +104,31 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
   };
 
   const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || activeTab !== 'scale') return;
+    if (!isDragging) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
-    setPosition({
-      x: clientX - dragStart.x,
-      y: clientY - dragStart.y
-    });
+    
+    let newX = clientX - dragStart.x;
+    let newY = clientY - dragStart.y;
+
+    if (activeTab === 'ratio' && imageRef.current) {
+      const img = imageRef.current;
+      const parts = targetRatio.split(':');
+      const ratioW = parseInt(parts[0]);
+      const ratioH = parseInt(parts[1]);
+      const targetR = ratioW / ratioH;
+      const imgR = img.width / img.height;
+
+      if (targetR > imgR) {
+        // Wider target, can only move left/right
+        newY = 0;
+      } else {
+        // Taller target, can only move top/bottom
+        newX = 0;
+      }
+    }
+
+    setPosition({ x: newX, y: newY });
   };
 
   const handleMouseUp = () => {
@@ -158,6 +173,27 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
     onProcess(compositeImageBase64, description, activeTab === 'ratio' ? targetRatio : currentRatio);
   };
 
+  const img = imageRef.current;
+  let canMoveX = true;
+  let canMoveY = true;
+  
+  if (activeTab === 'ratio' && img) {
+    const parts = targetRatio.split(':');
+    const ratioW = parseInt(parts[0]);
+    const ratioH = parseInt(parts[1]);
+    const targetR = ratioW / ratioH;
+    const imgR = img.width / img.height;
+    
+    if (targetR > imgR) {
+      canMoveY = false;
+    } else if (targetR < imgR) {
+      canMoveX = false;
+    } else {
+      canMoveX = false;
+      canMoveY = false;
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[100] bg-slate-900/95 flex items-center justify-center p-4 backdrop-blur-md">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -183,7 +219,7 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
                 backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px',
                 maxWidth: '100%',
                 maxHeight: '100%',
-                cursor: activeTab === 'scale' ? (isDragging ? 'grabbing' : 'grab') : 'default'
+                cursor: isDragging ? 'grabbing' : 'grab'
               }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
@@ -266,11 +302,11 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-3">Căn lề nhanh</label>
                     <div className="grid grid-cols-3 gap-2">
-                      <button onClick={() => handleAlign('top')} className="col-start-2 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg></button>
-                      <button onClick={() => handleAlign('left')} className="col-start-1 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+                      <button disabled={!canMoveY} onClick={() => handleAlign('top')} className={`col-start-2 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center ${!canMoveY ? 'opacity-50 cursor-not-allowed' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg></button>
+                      <button disabled={!canMoveX} onClick={() => handleAlign('left')} className={`col-start-1 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center ${!canMoveX ? 'opacity-50 cursor-not-allowed' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
                       <button onClick={() => handleAlign('center')} className="col-start-2 p-2 bg-slate-200 hover:bg-slate-300 rounded-lg flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg></button>
-                      <button onClick={() => handleAlign('right')} className="col-start-3 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
-                      <button onClick={() => handleAlign('bottom')} className="col-start-2 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg></button>
+                      <button disabled={!canMoveX} onClick={() => handleAlign('right')} className={`col-start-3 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center ${!canMoveX ? 'opacity-50 cursor-not-allowed' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+                      <button disabled={!canMoveY} onClick={() => handleAlign('bottom')} className={`col-start-2 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex justify-center ${!canMoveY ? 'opacity-50 cursor-not-allowed' : ''}`}><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg></button>
                     </div>
                   </div>
                 </div>
