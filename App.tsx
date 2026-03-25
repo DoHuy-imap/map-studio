@@ -232,11 +232,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleResizeExpand = async (compositeImage: string, textDescription: string, targetRatio: string) => {
+  const handleResizeExpand = async (compositeImage: string, maskImageBase64: string, textDescription: string, targetRatio: string, originalPrompt: string) => {
     setRefinementResult(prev => ({ ...prev, loading: true, error: null }));
     try {
       const { resizeAndExpandImage } = await import('./services/geminiService');
-      const res = await resizeAndExpandImage(compositeImage, textDescription, targetRatio as any);
+      const res = await resizeAndExpandImage(compositeImage, maskImageBase64, textDescription, targetRatio as any, originalPrompt);
       if (res) {
         const newImg = { url: res, isNew: true };
         setImageResult(prev => ({
