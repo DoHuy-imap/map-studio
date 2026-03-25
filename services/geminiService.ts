@@ -437,22 +437,43 @@ export const regeneratePromptFromPlan = async (plan: DesignPlan, req: ArtDirecti
 
 export const resizeAndExpandImage = async (
     compositeImage: string,
+    maskImageBase64: string,
     description: string,
-    targetAspectRatio: AspectRatio
+    targetAspectRatio: AspectRatio,
+    originalPrompt: string
 ): Promise<string | null> => {
     const ai = getGeminiClient();
     const sourceData = extractBase64AndMime(compositeImage);
-    if (!sourceData) return null;
+    const maskData = extractBase64AndMime(maskImageBase64);
+    if (!sourceData || !maskData) return null;
     
-    let prompt = `Outpaint and expand the image to fill the transparent areas seamlessly. Maintain the original image content exactly as it is.`;
-    if (description) {
-        prompt += ` Context for expansion: ${description}.`;
+    let contextPrompt = description;
+    if (!contextPrompt && originalPrompt) {
+        try {
+            const extractResponse = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: `Extract ONLY the background, environment, and scenery keywords from the following prompt. 
+                CRITICAL INSTRUCTION: DO NOT include any keywords related to the main subject, characters, people, animals, or objects in the foreground. 
+                We need this to outpaint the background without cloning the subject.
+                Return only a comma-separated list of keywords.
+                
+                Original Prompt: "${originalPrompt}"`,
+            });
+            contextPrompt = extractResponse.text?.trim() || '';
+        } catch (e) {
+            console.error("Failed to extract background keywords", e);
+        }
+    }
+
+    let prompt = `Outpaint and expand the image to fill the transparent areas (indicated by the white areas in the mask) seamlessly. The black areas in the mask MUST be preserved exactly as they are.`;
+    if (contextPrompt) {
+        prompt += ` Background/Environment context: ${contextPrompt}.`;
     }
     prompt += ` The output MUST be in ${targetAspectRatio} aspect ratio.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image-preview',
-        contents: { parts: [{ text: prompt }, { inlineData: sourceData }] },
+        contents: { parts: [{ text: prompt }, { inlineData: sourceData }, { inlineData: maskData }] },
         config: {
             imageConfig: { aspectRatio: targetAspectRatio }
         }
