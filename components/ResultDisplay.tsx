@@ -5,7 +5,7 @@ import { ArtDirectionRequest, ArtDirectionResponse, ImageGenerationResult, Separ
 import LayoutEditor from './LayoutEditor';
 import SmartRemover from './SmartRemover';
 import ResizeExpand from './ResizeExpand';
-import { convertLayoutToPrompt, upscaleImageTo4K, LAYOUT_TAG, suggestNewLayout, resizeAndExpandImage } from '../services/geminiService';
+import { convertLayoutToPrompt, upscaleImageTo4K, LAYOUT_TAG, suggestNewLayout, resizeAndExpandImage, getClosestAspectRatio } from '../services/geminiService';
 
 const triggerDownload = (base64Data: string, fileName: string) => {
   try {
@@ -40,7 +40,7 @@ interface ResultDisplayProps {
   onSeparateLayout: (selectedImage: string, mode: 'full' | 'background') => void;
   onRefineImage: (sourceImage: string, instruction: string) => void;
   onSmartRemove: (sourceImage: string, maskBase64: string, textDescription: string) => void;
-  onResizeExpand: (compositeImage: string, textDescription: string, targetRatio: string) => void;
+  onResizeExpand: (compositeImage: string, maskImageBase64: string, textDescription: string, targetRatio: string, originalPrompt: string) => void;
   onResetRefinement: () => void;
   separatedAssets: SeparatedAssets;
   onSaveDesign: (selectedImageUrl: string, finalPromptUsed: string) => void;
@@ -71,6 +71,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   const [localPlan, setLocalPlan] = useState<DesignPlan | null>(null);
   const [localLayout, setLocalLayout] = useState<LayoutSuggestion | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageRatio, setSelectedImageRatio] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [showSmartRemover, setShowSmartRemover] = useState(false);
   const [showResizeExpand, setShowResizeExpand] = useState(false);
@@ -105,6 +106,18 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
     setShowResizeExpand(false);
     onResetRefinement();
   }, [imageResult.images, onResetRefinement]);
+
+  useEffect(() => {
+    if (selectedImage) {
+      const img = new Image();
+      img.src = selectedImage;
+      img.onload = () => {
+        setSelectedImageRatio(getClosestAspectRatio(img.width.toString(), img.height.toString()));
+      };
+    } else {
+      setSelectedImageRatio(null);
+    }
+  }, [selectedImage]);
 
   useEffect(() => {
     let interval: any;
@@ -156,8 +169,8 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
   const handleDownload4K = async (url: string) => {
       setIsUpscaling(true);
       try {
-          const ratio = artDirection?.recommendedAspectRatio || "1:1";
-          const upscaleUrl = await upscaleImageTo4K(url, ratio as any);
+          const actualRatio = selectedImageRatio || artDirection?.recommendedAspectRatio || "1:1";
+          const upscaleUrl = await upscaleImageTo4K(url, actualRatio);
           triggerDownload(upscaleUrl, `map-design-4k-${Date.now()}.png`);
       } catch (e) { alert("Lỗi nâng cấp 4K."); }
       finally { setIsUpscaling(false); }
@@ -204,7 +217,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
             isProcessing={refinementResult.loading} 
             onProcess={(mask, text) => onSmartRemove(selectedImage, mask, text)} 
             resultUrl={null} 
-            aspectRatio={artDirection?.recommendedAspectRatio || "1:1"}
+            aspectRatio={(selectedImageRatio || artDirection?.recommendedAspectRatio || "1:1") as any}
           />
       )}
 
@@ -213,10 +226,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({
             imageUrl={selectedImage} 
             onClose={() => setShowResizeExpand(false)} 
             isProcessing={refinementResult.loading} 
-            onProcess={(compositeImage, text, targetRatio) => {
-              onResizeExpand(compositeImage, text, targetRatio);
+            onProcess={(compositeImage, maskImageBase64, text, targetRatio) => {
+              onResizeExpand(compositeImage, maskImageBase64, text, targetRatio, artDirection?.final_prompt || '');
             }} 
-            currentRatio={artDirection?.recommendedAspectRatio || "1:1"}
+            currentRatio={(selectedImageRatio || artDirection?.recommendedAspectRatio || "1:1") as any}
           />
       )}
 

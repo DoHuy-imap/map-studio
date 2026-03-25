@@ -4,7 +4,7 @@ import { AspectRatio } from '../types';
 interface ResizeExpandProps {
   imageUrl: string;
   onClose: () => void;
-  onProcess: (compositeImageBase64: string, textDescription: string, targetRatio: AspectRatio) => void;
+  onProcess: (compositeImageBase64: string, maskImageBase64: string, textDescription: string, targetRatio: AspectRatio) => void;
   isProcessing: boolean;
   currentRatio: AspectRatio;
 }
@@ -168,9 +168,43 @@ const ResizeExpand: React.FC<ResizeExpandProps> = ({
   };
 
   const handleProcess = () => {
-    if (!canvasRef.current) return;
-    const compositeImageBase64 = canvasRef.current.toDataURL('image/png');
-    onProcess(compositeImageBase64, description, activeTab === 'ratio' ? targetRatio : currentRatio);
+    if (!canvasRef.current || !imageRef.current) return;
+    const canvas = canvasRef.current;
+    const img = imageRef.current;
+    
+    const compositeImageBase64 = canvas.toDataURL('image/png');
+    
+    // Generate mask
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = canvas.width;
+    maskCanvas.height = canvas.height;
+    const ctx = maskCanvas.getContext('2d');
+    
+    if (ctx) {
+      // Fill with white (transparent area to be filled by AI)
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Calculate original image position
+      let drawWidth = img.width;
+      let drawHeight = img.height;
+      if (activeTab === 'scale') {
+        const scaleFactor = scale / 100;
+        drawWidth = img.width * scaleFactor;
+        drawHeight = img.height * scaleFactor;
+      }
+      let drawX = (canvas.width - drawWidth) / 2 + position.x;
+      let drawY = (canvas.height - drawHeight) / 2 + position.y;
+      
+      // Draw black rectangle for original image area with blur
+      ctx.filter = 'blur(12px)';
+      ctx.fillStyle = 'black';
+      ctx.fillRect(drawX, drawY, drawWidth, drawHeight);
+      ctx.filter = 'none';
+      
+      const maskImageBase64 = maskCanvas.toDataURL('image/png');
+      onProcess(compositeImageBase64, maskImageBase64, description, activeTab === 'ratio' ? targetRatio : currentRatio);
+    }
   };
 
   const img = imageRef.current;
